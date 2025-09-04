@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		BB7FBB4B2E5E6078000B3B4C /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = BB7FBB4A2E5E6078000B3B4C /* ComposableArchitecture */; };
-		BB8A70442E5F277D00452C62 /* .editorconfig in Resources */ = {isa = PBXBuildFile; fileRef = BB8A70432E5F277D00452C62 /* .editorconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,9 +28,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BB7FBB1F2E5E5F86000B3B4C /* SyncUpsPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = SyncUpsPlus.app; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlus.app"; sourceTree = "<absolute>"; };
-		BB7FBB2C2E5E5F88000B3B4C /* SyncUpsPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusTests.xctest; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlus.app/PlugIns/SyncUpsPlusTests.xctest"; sourceTree = "<absolute>"; };
-		BB7FBB362E5E5F88000B3B4C /* SyncUpsPlusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusUITests.xctest; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlusUITests-Runner.app/PlugIns/SyncUpsPlusUITests.xctest"; sourceTree = "<absolute>"; };
+		BB024A232E6A06A9002436C1 /* SyncUpsPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = SyncUpsPlus.app; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlus.app"; sourceTree = "<absolute>"; };
+		BB024A242E6A06A9002436C1 /* SyncUpsPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusTests.xctest; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlus.app/PlugIns/SyncUpsPlusTests.xctest"; sourceTree = "<absolute>"; };
+		BB024A252E6A06A9002436C1 /* SyncUpsPlusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusUITests.xctest; path = "/Users/jaroshevskii/Developer/SyncUpsPlus/build/Debug-iphoneos/SyncUpsPlusUITests-Runner.app/PlugIns/SyncUpsPlusUITests.xctest"; sourceTree = "<absolute>"; };
 		BB8A70432E5F277D00452C62 /* .editorconfig */ = {isa = PBXFileReference; lastKnownFileType = text; path = .editorconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -112,7 +111,7 @@
 				BB7FBB4A2E5E6078000B3B4C /* ComposableArchitecture */,
 			);
 			productName = SyncUpsPlus;
-			productReference = BB7FBB1F2E5E5F86000B3B4C /* SyncUpsPlus.app */;
+			productReference = BB024A232E6A06A9002436C1 /* SyncUpsPlus.app */;
 			productType = "com.apple.product-type.application";
 		};
 		BB7FBB2B2E5E5F88000B3B4C /* SyncUpsPlusTests */ = {
@@ -135,7 +134,7 @@
 			packageProductDependencies = (
 			);
 			productName = SyncUpsPlusTests;
-			productReference = BB7FBB2C2E5E5F88000B3B4C /* SyncUpsPlusTests.xctest */;
+			productReference = BB024A242E6A06A9002436C1 /* SyncUpsPlusTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		BB7FBB352E5E5F88000B3B4C /* SyncUpsPlusUITests */ = {
@@ -158,7 +157,7 @@
 			packageProductDependencies = (
 			);
 			productName = SyncUpsPlusUITests;
-			productReference = BB7FBB362E5E5F88000B3B4C /* SyncUpsPlusUITests.xctest */;
+			productReference = BB024A252E6A06A9002436C1 /* SyncUpsPlusUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -213,7 +212,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BB8A70442E5F277D00452C62 /* .editorconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
