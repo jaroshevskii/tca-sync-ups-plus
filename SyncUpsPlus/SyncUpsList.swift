@@ -109,6 +109,7 @@ extension LabelStyle where Self == TrailingIconLabelStyle {
         )
       ) {
         SyncUpsList()
+          ._printChanges()
       }
     )
   }
