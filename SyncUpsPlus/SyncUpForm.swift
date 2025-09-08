@@ -12,7 +12,13 @@ import SwiftUI
 struct SyncUpForm {
   @ObservableState
   struct State: Equatable {
+    var focus: Field? = .title
     var syncUp: SyncUp
+
+    enum Field: Hashable {
+      case attendee(Attendee.ID)
+      case title
+    }
   }
 
   enum Action: BindableAction {
@@ -27,21 +33,27 @@ struct SyncUpForm {
     Reduce { state, action in
       switch action {
       case .addAttendeeButtonTapped:
-        state.syncUp.attendees.append(
-          Attendee(id: Attendee.ID())
-        )
+        let attendee = Attendee(id: Attendee.ID())
+        state.syncUp.attendees.append(attendee)
+        state.focus = .attendee(attendee.id)
         return .none
         
       case .binding:
         return .none
-        
-      case let .onDeleteAttendees(indexes):
-        state.syncUp.attendees.remove(atOffsets: indexes)
-        if state.syncUp.attendees.isEmpty {
+
+      case let .onDeleteAttendees(indices):
+        state.syncUp.attendees.remove(atOffsets: indices)
+        guard
+          !state.syncUp.attendees.isEmpty,
+          let firstIndex = indices.first
+        else {
           state.syncUp.attendees.append(
             Attendee(id: Attendee.ID())
           )
+          return .none
         }
+        let index = min(firstIndex, state.syncUp.attendees.count - 1)
+        state.focus = .attendee(state.syncUp.attendees[index].id)
         return .none
       }
     }
@@ -50,19 +62,13 @@ struct SyncUpForm {
 
 struct SyncUpFormView: View {
   @Bindable var store: StoreOf<SyncUpForm>
-  @FocusState var focus: Field?
-  
-  enum Field: Hashable {
-    case attendee(Attendee.ID)
-    case title
-  }
+  @FocusState var focus: SyncUpForm.State.Field?
   
   var body: some View {
     Form {
       Section {
         TextField("Title", text: $store.syncUp.title)
           .focused($focus, equals: .title)
-          .onAppear { focus = .title }
         HStack {
           Slider(value: $store.syncUp.duration.minutes, in: 5...30, step: 1) {
             Text("Length")
@@ -81,36 +87,29 @@ struct SyncUpFormView: View {
         }
         .onDelete { indices in
           store.send(.onDeleteAttendees(indices))
-          guard
-            !store.syncUp.attendees.isEmpty,
-            let firstIndex = indices.first
-          else { return }
-          // TODO: Test focus with deletion
-          let index = min(firstIndex, store.syncUp.attendees.count - 1)
-          focus = .attendee(store.syncUp.attendees[index].id)
         }
 
         Button("New attendee") {
           store.send(.addAttendeeButtonTapped)
-          focus = .attendee(store.syncUp.attendees.last!.id)
         }
       } header: {
         Text("Attendees")
       }
     }
+    .bind($store.focus, to: $focus)
   }
 }
 
 #Preview {
-    SyncUpFormView(
-      store: Store(
-        initialState: SyncUpForm.State(
-          syncUp: .mock
-        )
-      ) {
-        SyncUpForm()
-      }
-    )
+  SyncUpFormView(
+    store: Store(
+      initialState: SyncUpForm.State(
+        syncUp: .mock
+      )
+    ) {
+      SyncUpForm()
+    }
+  )
 }
 
 struct ThemePicker: View {
@@ -140,22 +139,23 @@ extension Duration {
   }
 }
 
-struct OnFirstAppear: ViewModifier {
-  @State private var hasAppeared = false
-  let action: () -> Void
-
-  func body(content: Content) -> some View {
-    content
-      .onAppear {
-        guard !hasAppeared else { return }
-        hasAppeared = true
-        action()
-      }
-  }
-}
-
 extension View {
-  func onFirstAppear(perform action: @escaping () -> Void) -> some View {
+  fileprivate func onFirstAppear(perform action: @escaping () -> Void) -> some View {
     self.modifier(OnFirstAppear(action: action))
+  }
+  
+  private struct OnFirstAppear: ViewModifier {
+    let action: () -> Void
+    
+    @State private var hasAppeared = false
+    
+    func body(content: Content) -> some View {
+      content
+        .onAppear {
+          guard !hasAppeared else { return }
+          hasAppeared = true
+          action()
+        }
+    }
   }
 }
