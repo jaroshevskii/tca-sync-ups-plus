@@ -138,24 +138,3 @@ extension Duration {
     set { self = .seconds(newValue * 60) }
   }
 }
-
-extension View {
-  fileprivate func onFirstAppear(perform action: @escaping () -> Void) -> some View {
-    self.modifier(OnFirstAppear(action: action))
-  }
-  
-  private struct OnFirstAppear: ViewModifier {
-    let action: () -> Void
-    
-    @State private var hasAppeared = false
-    
-    func body(content: Content) -> some View {
-      content
-        .onAppear {
-          guard !hasAppeared else { return }
-          hasAppeared = true
-          action()
-        }
-    }
-  }
-}
