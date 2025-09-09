@@ -48,7 +48,7 @@ struct SyncUpsList {
 }
 
 struct SyncUpsListView: View {
-  let store: StoreOf<SyncUpsList>
+  @Bindable var store: StoreOf<SyncUpsList>
   
   var body: some View {
     List {
@@ -63,6 +63,9 @@ struct SyncUpsListView: View {
       .onDelete { indexSet in
         store.send(.onDelete(indexSet))
       }
+    }
+    .sheet(item: $store.scope(state: \.addSyncUp, action: \.addSyncUp)) { addSyncUpStore in
+      SyncUpFormView(store: addSyncUpStore)
     }
     .toolbar {
       Button {
