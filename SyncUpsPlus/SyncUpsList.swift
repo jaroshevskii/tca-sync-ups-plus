@@ -19,6 +19,8 @@ struct SyncUpsList {
   enum Action {
     case addSyncUpButtonTapped
     case addSyncUp(PresentationAction<SyncUpForm.Action>)
+    case confirmAddButtonTapped
+    case discardButtonTapped
     case onDelete(IndexSet)
     case syncUpTapped(id: SyncUp.ID)
   }
@@ -31,6 +33,18 @@ struct SyncUpsList {
         return .none
         
       case .addSyncUp:
+        return .none
+        
+      case .confirmAddButtonTapped:
+        guard let newSyncUp = state.addSyncUp?.syncUp else {
+          return .none
+        }
+        state.addSyncUp = nil
+        state.syncUps.append(newSyncUp)
+        return .none
+        
+      case .discardButtonTapped:
+        state.addSyncUp = nil
         return .none
         
       case let .onDelete(indexSet):
@@ -65,7 +79,22 @@ struct SyncUpsListView: View {
       }
     }
     .sheet(item: $store.scope(state: \.addSyncUp, action: \.addSyncUp)) { addSyncUpStore in
-      SyncUpFormView(store: addSyncUpStore)
+      NavigationStack {
+        SyncUpFormView(store: addSyncUpStore)
+          .navigationTitle("New sync-up")
+          .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+              Button("Discard") {
+                store.send(.discardButtonTapped)
+              }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Add") {
+                store.send(.confirmAddButtonTapped)
+              }
+            }
+          }
+      }
     }
     .toolbar {
       Button {
