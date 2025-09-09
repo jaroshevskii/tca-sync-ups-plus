@@ -31,7 +31,7 @@ struct SyncUpsList {
         state.syncUps.remove(atOffsets: indexSet)
         return .none
         
-      case .syncUpTapped(id: let id):
+      case let .syncUpTapped(id):
         return .none
       }
     }
