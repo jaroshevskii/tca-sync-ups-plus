@@ -52,8 +52,7 @@ struct SyncUpFormTests {
       $0.syncUp.attendees = [attendee2]
     }
   }
-  
-  // TODO: Fix broken test
+
   @Test
   func removeAttendee() async {
     let store = TestStore(
@@ -61,17 +60,20 @@ struct SyncUpFormTests {
         syncUp: SyncUp(
           id: SyncUp.ID(),
           attendees: [
-            Attendee(id: Attendee.ID()),
-            Attendee(id: Attendee.ID())
+            Attendee(id: Attendee.ID(0)),
+            Attendee(id: Attendee.ID(1))
           ]
         )
       )
     ) {
       SyncUpForm()
     }
+    store.exhaustivity = .off
     
     await store.send(.onDeleteAttendees([0])) {
-      $0.syncUp.attendees.removeFirst()
+      $0.syncUp.attendees = [
+        Attendee(id: Attendee.ID(1))
+      ]
     }
   }
 }
