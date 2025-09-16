@@ -28,9 +28,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BB024A3D2E6AF762002436C1 /* SyncUpsPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SyncUpsPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB024A3E2E6AF762002436C1 /* SyncUpsPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpsPlusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB024A3F2E6AF762002436C1 /* SyncUpsPlusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpsPlusUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB024A3D2E6AF762002436C1 /* SyncUpsPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = SyncUpsPlus.app; path = "/Users/jaroshevskii/Developer/tca-sync-ups-plus/build/Debug-iphoneos/SyncUpsPlus.app"; sourceTree = "<absolute>"; };
+		BB024A3E2E6AF762002436C1 /* SyncUpsPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusTests.xctest; path = "/Users/jaroshevskii/Developer/tca-sync-ups-plus/build/Debug-iphoneos/SyncUpsPlus.app/PlugIns/SyncUpsPlusTests.xctest"; sourceTree = "<absolute>"; };
+		BB024A3F2E6AF762002436C1 /* SyncUpsPlusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = SyncUpsPlusUITests.xctest; path = "/Users/jaroshevskii/Developer/tca-sync-ups-plus/build/Debug-iphoneos/SyncUpsPlusUITests-Runner.app/PlugIns/SyncUpsPlusUITests.xctest"; sourceTree = "<absolute>"; };
 		BB8A70432E5F277D00452C62 /* .editorconfig */ = {isa = PBXFileReference; lastKnownFileType = text; path = .editorconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -85,9 +85,6 @@
 				BB7FBB212E5E5F86000B3B4C /* SyncUpsPlus */,
 				BB7FBB2F2E5E5F88000B3B4C /* SyncUpsPlusTests */,
 				BB7FBB392E5E5F88000B3B4C /* SyncUpsPlusUITests */,
-				BB024A3D2E6AF762002436C1 /* SyncUpsPlus.app */,
-				BB024A3E2E6AF762002436C1 /* SyncUpsPlusTests.xctest */,
-				BB024A3F2E6AF762002436C1 /* SyncUpsPlusUITests.xctest */,
 			);
 			sourceTree = "<group>";
 		};

@@ -13,7 +13,7 @@ struct SyncUpsList {
   @ObservableState
   struct State: Equatable {
     @Presents var addSyncUp: SyncUpForm.State?
-    var syncUps: IdentifiedArrayOf<SyncUp> = []
+    @Shared(.syncUps) var syncUps
   }
   
   enum Action {
@@ -44,7 +44,7 @@ struct SyncUpsList {
           return .none
         }
         state.addSyncUp = nil
-        state.syncUps.append(newSyncUp)
+        state.$syncUps.withLock { _ = $0.append(newSyncUp) }
         return .none
         
       case .discardButtonTapped:
@@ -52,7 +52,7 @@ struct SyncUpsList {
         return .none
         
       case let .onDelete(indexSet):
-        state.syncUps.remove(atOffsets: indexSet)
+        state.$syncUps.withLock { $0.remove(atOffsets: indexSet) }
         return .none
         
       case .syncUpTapped:
@@ -62,6 +62,12 @@ struct SyncUpsList {
     .ifLet(\.$addSyncUp, action: \.addSyncUp) {
       SyncUpForm()
     }
+  }
+}
+
+extension SharedKey where Self == FileStorageKey<IdentifiedArrayOf<SyncUp>>.Default {
+  static var syncUps: Self {
+    Self[.fileStorage(.documentsDirectory.appending(component: "sync-ups.json")), default: []]
   }
 }
 
@@ -111,6 +117,20 @@ struct SyncUpsListView: View {
   }
 }
 
+#Preview {
+  @Shared(.syncUps) var syncUps = [.mock]
+  NavigationStack {
+    SyncUpsListView(
+      store: Store(
+        initialState: SyncUpsList.State()
+      ) {
+        SyncUpsList()
+          ._printChanges()
+      }
+    )
+  }
+}
+
 struct CardView: View {
   let syncUp: SyncUp
 
@@ -143,19 +163,4 @@ struct TrailingIconLabelStyle: LabelStyle {
 
 extension LabelStyle where Self == TrailingIconLabelStyle {
   static var trailingIcon: Self { Self() }
-}
-
-#Preview {
-  NavigationStack {
-    SyncUpsListView(
-      store: Store(
-        initialState: SyncUpsList.State(
-          syncUps: [.mock]
-        )
-      ) {
-        SyncUpsList()
-          ._printChanges()
-      }
-    )
-  }
 }
