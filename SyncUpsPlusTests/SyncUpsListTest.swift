@@ -11,6 +11,8 @@ import Foundation
 
 @testable import SyncUpsPlus
 
+// TODO: Update tests
+
 @MainActor
 struct SyncUpsListTest {
   @Test
@@ -35,7 +37,7 @@ struct SyncUpsListTest {
     await store.send(\.addSyncUp.binding.syncUp, editedSyncUp)
     
     await store.send(.confirmAddButtonTapped) {
-      $0.syncUps = [editedSyncUp]
+      $0.$syncUps.withLock { $0 = [editedSyncUp] }
     }
   }
   
@@ -67,7 +69,7 @@ struct SyncUpsListTest {
     
     await store.send(.confirmAddButtonTapped) {
       $0.addSyncUp = nil
-      $0.syncUps = [editedSyncUp]
+      $0.$syncUps.withLock { $0 = [editedSyncUp] }
     }
   }
   
@@ -75,19 +77,18 @@ struct SyncUpsListTest {
   func deletion() async {
     let store = TestStore(
       initialState: SyncUpsList.State(
-        syncUps: [
-          SyncUp(
-            id: SyncUp.ID(),
-            title: "Morning Sync"
-          )
-        ]
+        syncUps: Shared(
+          value: [
+            SyncUp(id: SyncUp.ID(), title: "Morning Sync")
+          ]
+        )
       )
     ) {
       SyncUpsList()
     }
     
     await store.send(.onDelete([0])) {
-      $0.syncUps = []
+      $0.$syncUps.withLock { $0 = [] }
     }
   }
 }
