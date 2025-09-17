@@ -72,7 +72,7 @@ struct AppView: View {
   AppView(
     store: Store(
       initialState: AppFeature.State(
-        syncUpsList: SyncUpsList.State()
+        syncUpsList: SyncUpsList.State(syncUps: Shared(value: [.mock]))
       )
     ) {
       AppFeature()

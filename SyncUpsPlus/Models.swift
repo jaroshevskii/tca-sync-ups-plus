@@ -78,7 +78,6 @@ extension SyncUp {
       Attendee(id: Attendee.ID(), name: "Blob III"),
       Attendee(id: Attendee.ID(), name: "Blob I"),
     ],
-    duration: .seconds(60),
     meetings: [
       Meeting(
         id: Meeting.ID(),
