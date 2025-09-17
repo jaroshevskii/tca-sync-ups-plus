@@ -76,10 +76,16 @@ struct SyncUpsListView: View {
   
   var body: some View {
     List {
-      ForEach(store.syncUps) { syncUp in
-        Button {
-          
-        } label: {
+      ForEach(Array(store.$syncUps)) { $syncUp in
+        // TODO: Alternative refactor
+        //
+        // An alternative is to use a plain Button instead of NavigationLink, and send an action from
+        // that button. Then the parent App feature can intercept that action and manually append
+        // state to its path. This fully decouples the features from one another, and only the App
+        // feature needs to have knowledge about all of the child features
+        NavigationLink(
+          state: AppFeature.Path.State.detail(SyncUpDetail.State(syncUp: $syncUp))
+        ) {
           CardView(syncUp: syncUp)
         }
         .listRowBackground(syncUp.theme.mainColor)

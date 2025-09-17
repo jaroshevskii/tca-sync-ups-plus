@@ -91,4 +91,3 @@ struct SyncUpsPlusApp: App {
     }
   }
 }
-
