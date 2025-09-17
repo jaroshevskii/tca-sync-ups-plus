@@ -75,6 +75,23 @@ extension SyncUp {
       Attendee(id: Attendee.ID(), name: "Blob Jr."),
       Attendee(id: Attendee.ID(), name: "Blob Sr."),
     ],
+    meetings: [
+      Meeting(
+        id: Meeting.ID(),
+        date: .now.addingTimeInterval(-86400 * 3), // 3 days ago
+        transcript: "Discussed the new project requirements and assigned tasks."
+      ),
+      Meeting(
+        id: Meeting.ID(),
+        date: .now.addingTimeInterval(-86400 * 2), // 2 days ago
+        transcript: "Reviewed progress, tackled blockers, and refined estimates."
+      ),
+      Meeting(
+        id: Meeting.ID(),
+        date: .now.addingTimeInterval(-86400), // yesterday
+        transcript: "Demoed completed features and planned next sprint."
+      )
+    ],
     title: "Point-Free Morning Sync"
   )
 }
