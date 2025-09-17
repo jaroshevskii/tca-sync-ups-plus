@@ -68,30 +68,32 @@ enum Theme: String, CaseIterable, Equatable, Identifiable, Codable {
 }
 
 extension SyncUp {
-  static let mock = SyncUp(
+  static let mock = Self(
     id: SyncUp.ID(),
     attendees: [
       Attendee(id: Attendee.ID(), name: "Blob"),
-      Attendee(id: Attendee.ID(), name: "Blob Jr."),
-      Attendee(id: Attendee.ID(), name: "Blob Sr."),
+      Attendee(id: Attendee.ID(), name: "Blob Jr"),
+      Attendee(id: Attendee.ID(), name: "Blob Sr"),
+      Attendee(id: Attendee.ID(), name: "Blob Esq"),
+      Attendee(id: Attendee.ID(), name: "Blob III"),
+      Attendee(id: Attendee.ID(), name: "Blob I"),
     ],
+    duration: .seconds(60),
     meetings: [
       Meeting(
         id: Meeting.ID(),
-        date: .now.addingTimeInterval(-86400 * 3), // 3 days ago
-        transcript: "Discussed the new project requirements and assigned tasks."
-      ),
-      Meeting(
-        id: Meeting.ID(),
-        date: .now.addingTimeInterval(-86400 * 2), // 2 days ago
-        transcript: "Reviewed progress, tackled blockers, and refined estimates."
-      ),
-      Meeting(
-        id: Meeting.ID(),
-        date: .now.addingTimeInterval(-86400), // yesterday
-        transcript: "Demoed completed features and planned next sprint."
+        date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
+        transcript: """
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
+          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
+          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure \
+          dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \
+          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
+          mollit anim id est laborum.
+          """
       )
     ],
-    title: "Point-Free Morning Sync"
+    theme: .orange,
+    title: "Design"
   )
 }

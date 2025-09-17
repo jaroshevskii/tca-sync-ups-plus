@@ -128,8 +128,8 @@ struct SyncUpDetailView: View {
       if !store.syncUp.meetings.isEmpty {
         Section {
           ForEach(store.syncUp.meetings) { meeting in
-            NavigationLink (
-              AppFeature.Path.meeting(meeting, syncUp: store.syncUp)
+            NavigationLink(
+              state: AppFeature.Path.State.meeting(meeting, syncUp: store.syncUp)
             ) {
               HStack {
                 Image(systemName: "calendar")

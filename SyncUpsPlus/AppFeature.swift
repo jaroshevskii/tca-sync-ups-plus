@@ -1,5 +1,5 @@
 //
-//  App.swift
+//  AppFeature.swift
 //  SyncUpsPlus
 //
 //  Created by Sasha Jaroshevskii on 9/17/25.
@@ -78,20 +78,4 @@ struct AppView: View {
       AppFeature()
     }
   )
-}
-
-@main
-struct SyncUpsPlusApp: App {
-  @MainActor
-  static let store = Store(initialState: SyncUpsList.State()) {
-    SyncUpsList()
-  }
-  
-  var body: some Scene {
-    WindowGroup {
-      NavigationStack {
-        SyncUpsListView(store: Self.store)
-      }
-    }
-  }
 }
