@@ -1,12 +1,6 @@
-//
-//  SyncUpDetail.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 9/16/25.
-//
-
 import ComposableArchitecture
 import SwiftUI
+@preconcurrency import Speech
 
 @Reducer
 struct SyncUpDetail {
@@ -14,95 +8,119 @@ struct SyncUpDetail {
   enum Destination {
     case alert(AlertState<Alert>)
     case edit(SyncUpForm)
-    
+
     @CasePathable
     enum Alert {
-      case confirmButtonTapped
+      case confirmDeletion
+      case continueWithoutRecording
+      case openSettings
     }
   }
-  
+
   @ObservableState
   struct State: Equatable {
     @Presents var destination: Destination.State?
     @Shared var syncUp: SyncUp
   }
-  
-  enum Action {
+
+  enum Action: Sendable {
     case cancelEditButtonTapped
+    case delegate(Delegate)
     case deleteButtonTapped
+    case deleteMeetings(atOffsets: IndexSet)
     case destination(PresentationAction<Destination.Action>)
     case doneEditingButtonTapped
     case editButtonTapped
-    case editSyncUp(PresentationAction<SyncUpForm.Action>)
+    case startMeetingButtonTapped
+
+    @CasePathable
+    enum Delegate {
+      case startMeeting(Shared<SyncUp>)
+    }
   }
-  
+
   @Dependency(\.dismiss) var dismiss
-  
+  @Dependency(\.openSettings) var openSettings
+  @Dependency(\.speechClient.authorizationStatus) var authorizationStatus
+
   var body: some ReducerOf<Self> {
     Reduce { state, action in
       switch action {
-      case .destination(.presented(.alert(.confirmButtonTapped))):
-        @Shared(.syncUps) var syncUps
-        $syncUps.withLock { _ = $0.remove(id: state.syncUp.id) }
-        return .run { _ in await dismiss() }
-        
-      case .destination:
-        return .none
-        
       case .cancelEditButtonTapped:
         state.destination = nil
         return .none
-        
+
+      case .delegate:
+        return .none
+
       case .deleteButtonTapped:
         state.destination = .alert(.deleteSyncUp)
         return .none
-        
-      case .doneEditingButtonTapped:
-        guard let editedSyncUp = state.destination?.edit?.syncUp else {
-          return .none
+
+      case let .deleteMeetings(atOffsets: indices):
+        state.$syncUp.withLock { $0.meetings.remove(atOffsets: indices) }
+        return .none
+
+      case let .destination(.presented(.alert(alertAction))):
+        switch alertAction {
+        case .confirmDeletion:
+          @Shared(.syncUps) var syncUps
+          $syncUps.withLock { _ = $0.remove(id: state.syncUp.id) }
+          return .run { _ in await dismiss() }
+
+        case .continueWithoutRecording:
+          return .send(.delegate(.startMeeting(state.$syncUp)))
+
+        case .openSettings:
+          return .run { _ in await openSettings() }
         }
-        state.$syncUp.withLock { $0 = editedSyncUp }
+
+      case .destination:
+        return .none
+
+      case .doneEditingButtonTapped:
+        guard case let .some(.edit(editState)) = state.destination
+        else { return .none }
+        state.$syncUp.withLock { $0 = editState.syncUp }
         state.destination = nil
         return .none
-        
+
       case .editButtonTapped:
         state.destination = .edit(SyncUpForm.State(syncUp: state.syncUp))
         return .none
-        
-      case .editSyncUp:
-        return .none
+
+      case .startMeetingButtonTapped:
+        switch authorizationStatus() {
+        case .notDetermined, .authorized:
+          return .send(.delegate(.startMeeting(state.$syncUp)))
+
+        case .denied:
+          state.destination = .alert(.speechRecognitionDenied)
+          return .none
+
+        case .restricted:
+          state.destination = .alert(.speechRecognitionRestricted)
+          return .none
+
+        @unknown default:
+          return .none
+        }
       }
     }
     .ifLet(\.$destination, action: \.destination)
   }
 }
-
 extension SyncUpDetail.Destination.State: Equatable {}
-
-extension AlertState where Action == SyncUpDetail.Destination.Alert {
-  static let deleteSyncUp = Self {
-    TextState("Delete?")
-  } actions: {
-    ButtonState(role: .destructive, action: .confirmButtonTapped) {
-      TextState("Yes")
-    }
-    ButtonState(role: .cancel) {
-      TextState("Nevermind")
-    }
-  } message: {
-    TextState("Are you sure you want to delete this meeting?")
-  }
-}
 
 struct SyncUpDetailView: View {
   @Bindable var store: StoreOf<SyncUpDetail>
-  
+
   var body: some View {
     Form {
       Section {
-        NavigationLink(
-          state: AppFeature.Path.State.record(RecordMeeting.State(syncUp: store.$syncUp))
-        ) {
+        Button {
+          store.send(.startMeetingButtonTapped)
+        } label: {
           Label("Start Meeting", systemImage: "timer")
             .font(.headline)
             .foregroundColor(.accentColor)
@@ -139,6 +157,9 @@ struct SyncUpDetailView: View {
               }
             }
           }
+          .onDelete { indices in
+            store.send(.deleteMeetings(atOffsets: indices))
+          }
         } header: {
           Text("Past meetings")
         }
@@ -165,7 +186,7 @@ struct SyncUpDetailView: View {
         store.send(.editButtonTapped)
       }
     }
-    .navigationTitle(Text(store.syncUp.title))
+    .navigationTitle(store.syncUp.title)
     .alert($store.scope(state: \.destination?.alert, action: \.destination.alert))
     .sheet(
       item: $store.scope(state: \.destination?.edit, action: \.destination.edit)
@@ -179,7 +200,7 @@ struct SyncUpDetailView: View {
                 store.send(.cancelEditButtonTapped)
               }
             }
-            ToolbarItem(placement: . confirmationAction) {
+            ToolbarItem(placement: .confirmationAction) {
               Button("Done") {
                 store.send(.doneEditingButtonTapped)
               }
@@ -190,14 +211,63 @@ struct SyncUpDetailView: View {
   }
 }
 
+extension AlertState where Action == SyncUpDetail.Destination.Alert {
+  static let deleteSyncUp = Self {
+    TextState("Delete?")
+  } actions: {
+    ButtonState(role: .destructive, action: .confirmDeletion) {
+      TextState("Yes")
+    }
+    ButtonState(role: .cancel) {
+      TextState("Nevermind")
+    }
+  } message: {
+    TextState("Are you sure you want to delete this meeting?")
+  }
+
+  static let speechRecognitionDenied = Self {
+    TextState("Speech recognition denied")
+  } actions: {
+    ButtonState(action: .continueWithoutRecording) {
+      TextState("Continue without recording")
+    }
+    ButtonState(action: .openSettings) {
+      TextState("Open settings")
+    }
+    ButtonState(role: .cancel) {
+      TextState("Cancel")
+    }
+  } message: {
+    TextState(
+      """
+      You previously denied speech recognition and so your meeting will not be recorded. You can \
+      enable speech recognition in settings, or you can continue without recording.
+      """
+    )
+  }
+
+  static let speechRecognitionRestricted = Self {
+    TextState("Speech recognition restricted")
+  } actions: {
+    ButtonState(action: .continueWithoutRecording) {
+      TextState("Continue without recording")
+    }
+    ButtonState(role: .cancel) {
+      TextState("Cancel")
+    }
+  } message: {
+    TextState(
+      """
+      Your device does not support speech recognition and so your meeting will not be recorded.
+      """
+    )
+  }
+}
+
 #Preview {
   NavigationStack {
     SyncUpDetailView(
-      store: Store(
-        initialState: SyncUpDetail.State(
-          syncUp: Shared(value: .mock)
-        )
-      ) {
+      store: Store(initialState: SyncUpDetail.State(syncUp: Shared(value: .mock))) {
         SyncUpDetail()
       }
     )

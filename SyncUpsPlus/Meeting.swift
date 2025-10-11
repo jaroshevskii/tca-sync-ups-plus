@@ -1,10 +1,3 @@
-//
-//  Meeting.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 9/17/25.
-//
-
 import SwiftUI
 import IdentifiedCollections
 
@@ -30,7 +23,6 @@ struct MeetingView: View {
     .navigationTitle(Text(meeting.date, style: .date))
   }
 }
-
 
 #Preview {
   MeetingView(meeting: SyncUp.mock.meetings[0], syncUp: .mock)

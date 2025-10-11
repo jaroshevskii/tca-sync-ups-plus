@@ -1,12 +1,8 @@
-//
-//  RecordMeeting.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 9/18/25.
-//
-
 import ComposableArchitecture
 import SwiftUI
+import Tagged
+
+@preconcurrency import Speech
 
 @Reducer
 struct RecordMeeting {
@@ -17,109 +13,143 @@ struct RecordMeeting {
     var speakerIndex = 0
     @Shared var syncUp: SyncUp
     var transcript = ""
-    
+
     var durationRemaining: Duration {
       syncUp.duration - .seconds(secondsElapsed)
     }
   }
-  
+
   enum Action {
     case alert(PresentationAction<Alert>)
     case endMeetingButtonTapped
     case nextButtonTapped
-    case onAppear
+    case onTask
     case timerTick
-    
+    case speechFailure
+    case speechResult(SpeechRecognitionResult)
+
+    @CasePathable
     enum Alert {
-      case discardMeeting
-      case saveMeeting
+      case confirmDiscard
+      case confirmSave
     }
   }
-  
+
   @Dependency(\.continuousClock) var clock
   @Dependency(\.dismiss) var dismiss
-  @Dependency(\.date.now) var now
-  @Dependency(\.uuid) var uuid
-  
+  @Dependency(\.speechClient) var speechClient
+
   var body: some ReducerOf<Self> {
     Reduce { state, action in
       switch action {
-      case .alert(.presented(.discardMeeting)):
+      case .alert(.presented(.confirmDiscard)):
         return .run { _ in await dismiss() }
-        
-      case .alert(.presented(.saveMeeting)):
-        state.$syncUp.withLock {
-          _ = $0.meetings.insert(
-            Meeting(id: uuid(), date: now, transcript: state.transcript),
-            at: 0
-          )
-        }
+
+      case .alert(.presented(.confirmSave)):
+        state.$syncUp.withLock { $0.insert(transcript: state.transcript) }
         return .run { _ in await dismiss() }
-        
+
       case .alert:
         return .none
-        
+
       case .endMeetingButtonTapped:
-        state.alert = .endMeeting
+        state.alert = .endMeeting(isDiscardable: true)
         return .none
 
       case .nextButtonTapped:
-        guard state.speakerIndex < state.syncUp.attendees.count - 1 else {
-          state.alert = .endMeeting
+        guard state.speakerIndex < state.syncUp.attendees.count - 1
+        else {
+          state.alert = .endMeeting(isDiscardable: false)
           return .none
         }
         state.speakerIndex += 1
-        state.secondsElapsed = state.speakerIndex * Int(state.syncUp.durationPerAttendee.components.seconds)
+        state.secondsElapsed =
+          state.speakerIndex * Int(state.syncUp.durationPerAttendee.components.seconds)
         return .none
-        
-      case .onAppear:
+
+      case .onTask:
         return .run { send in
-          for await _ in clock.timer(interval: .seconds(1)) {
-            await send(.timerTick)
+          let authorization =
+            await speechClient.authorizationStatus() == .notDetermined
+            ? speechClient.requestAuthorization()
+            : speechClient.authorizationStatus()
+
+          await withDiscardingTaskGroup { group in
+            if authorization == .authorized {
+              group.addTask {
+                await startSpeechRecognition(send: send)
+              }
+            }
+            group.addTask {
+              await startTimer(send: send)
+            }
           }
         }
-        
+
       case .timerTick:
-        guard state.alert == nil else { return .none }
-        
+        guard state.alert == nil
+        else { return .none }
+
         state.secondsElapsed += 1
+
         let secondsPerAttendee = Int(state.syncUp.durationPerAttendee.components.seconds)
         if state.secondsElapsed.isMultiple(of: secondsPerAttendee) {
           if state.secondsElapsed == state.syncUp.duration.components.seconds {
-            state.$syncUp.withLock {
-              _ = $0.meetings.insert(
-                Meeting(id: uuid(), date: now, transcript: state.transcript),
-                at: 0
-              )
-            }
+            state.$syncUp.withLock { $0.insert(transcript: state.transcript) }
             return .run { _ in await dismiss() }
           }
           state.speakerIndex += 1
         }
+
+        return .none
+
+      case .speechFailure:
+        if !state.transcript.isEmpty {
+          state.transcript += " ❌"
+        }
+        state.alert = .speechRecognizerFailed
+        return .none
+
+      case let .speechResult(result):
+        state.transcript = result.bestTranscription.formattedString
         return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)
   }
+
+  private func startSpeechRecognition(send: Send<Action>) async {
+    do {
+      let speechTask = await speechClient.startTask(
+        UncheckedSendable(SFSpeechAudioBufferRecognitionRequest())
+      )
+      for try await result in speechTask {
+        await send(.speechResult(result))
+      }
+    } catch {
+      await send(.speechFailure)
+    }
+  }
+
+  private func startTimer(send: Send<Action>) async {
+    for await _ in clock.timer(interval: .seconds(1)) {
+      await send(.timerTick)
+    }
+  }
 }
 
-extension AlertState where Action == RecordMeeting.Action.Alert {
-  static var endMeeting: Self {
-    Self {
-      TextState("End meeting?")
-    } actions: {
-      ButtonState(action: .saveMeeting) {
-        TextState("Save and end")
-      }
-      ButtonState(role: .destructive, action: .discardMeeting) {
-        TextState("Discard")
-      }
-      ButtonState(role: .cancel) {
-        TextState("Resume")
-      }
-    } message: {
-      TextState("You are ending the meeting early. What would you like to do?")
-    }
+extension SyncUp {
+  fileprivate mutating func insert(transcript: String) {
+    @Dependency(\.date.now) var now
+    @Dependency(\.uuid) var uuid
+    meetings.insert(
+      Meeting(
+        id: Meeting.ID(uuid()),
+        date: now,
+        transcript: transcript
+      ),
+      at: 0
+    )
   }
 }
 
@@ -151,7 +181,7 @@ struct RecordMeetingView: View {
       }
     }
     .padding()
-    .foregroundStyle(store.syncUp.theme.accentColor)
+    .foregroundColor(store.syncUp.theme.accentColor)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .cancellationAction) {
@@ -161,8 +191,48 @@ struct RecordMeetingView: View {
       }
     }
     .navigationBarBackButtonHidden(true)
-    .onAppear { store.send(.onAppear) }
     .alert($store.scope(state: \.alert, action: \.alert))
+    .task { await store.send(.onTask).finish() }
+  }
+}
+
+extension AlertState where Action == RecordMeeting.Action.Alert {
+  static func endMeeting(isDiscardable: Bool) -> Self {
+    Self {
+      TextState("End meeting?")
+    } actions: {
+      ButtonState(action: .confirmSave) {
+        TextState("Save and end")
+      }
+      if isDiscardable {
+        ButtonState(role: .destructive, action: .confirmDiscard) {
+          TextState("Discard")
+        }
+      }
+      ButtonState(role: .cancel) {
+        TextState("Resume")
+      }
+    } message: {
+      TextState("You are ending the meeting early. What would you like to do?")
+    }
+  }
+
+  static let speechRecognizerFailed = Self {
+    TextState("Speech recognition failure")
+  } actions: {
+    ButtonState(role: .cancel) {
+      TextState("Continue meeting")
+    }
+    ButtonState(role: .destructive, action: .confirmDiscard) {
+      TextState("Discard meeting")
+    }
+  } message: {
+    TextState(
+      """
+      The speech recognizer has failed for some reason and so your meeting will no longer be \
+      recorded. What do you want to do?
+      """
+    )
   }
 }
 
@@ -280,13 +350,13 @@ struct SpeakerArc: Shape {
     }
   }
 
-  private var degreesPerSpeaker: Double {
+  nonisolated private var degreesPerSpeaker: Double {
     360 / Double(totalSpeakers)
   }
-  private var startAngle: Angle {
+  nonisolated private var startAngle: Angle {
     Angle(degrees: degreesPerSpeaker * Double(speakerIndex) + 1)
   }
-  private var endAngle: Angle {
+  nonisolated private var endAngle: Angle {
     Angle(degrees: startAngle.degrees + degreesPerSpeaker - 1)
   }
 }
