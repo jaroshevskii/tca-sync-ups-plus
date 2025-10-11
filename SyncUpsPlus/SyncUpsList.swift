@@ -1,115 +1,94 @@
-//
-//  SyncUpsList.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 8/27/25.
-//
-
 import ComposableArchitecture
 import SwiftUI
+import Tagged
 
 @Reducer
 struct SyncUpsList {
+  @Reducer
+  enum Destination {
+    case add(SyncUpForm)
+    case alert(AlertState<Alert>)
+
+    @CasePathable
+    enum Alert {
+      case confirmLoadMockData
+    }
+  }
+
   @ObservableState
   struct State: Equatable {
-    @Presents var addSyncUp: SyncUpForm.State?
+    @Presents var destination: Destination.State?
     @Shared(.syncUps) var syncUps
   }
-  
+
   enum Action {
     case addSyncUpButtonTapped
-    case addSyncUp(PresentationAction<SyncUpForm.Action>)
-    case confirmAddButtonTapped
-    case discardButtonTapped
+    case confirmAddSyncUpButtonTapped
+    case destination(PresentationAction<Destination.Action>)
+    case dismissAddSyncUpButtonTapped
     case onDelete(IndexSet)
-    case syncUpTapped(id: SyncUp.ID)
   }
-  
+
   @Dependency(\.uuid) var uuid
-  
+
   var body: some ReducerOf<Self> {
     Reduce { state, action in
       switch action {
       case .addSyncUpButtonTapped:
-        state.addSyncUp = SyncUpForm.State(
-          syncUp: SyncUp(id: uuid())
+        state.destination = .add(
+          SyncUpForm.State(
+            syncUp: SyncUp(id: SyncUp.ID(uuid()))
+          )
         )
         return .none
-        
-      case .addSyncUp:
-        return .none
-        
-      case .confirmAddButtonTapped:
-        guard let newSyncUp = state.addSyncUp?.syncUp else {
-          return .none
+
+      case .confirmAddSyncUpButtonTapped:
+        guard case let .some(.add(editState)) = state.destination
+        else { return .none }
+        var syncUp = editState.syncUp
+        syncUp.attendees.removeAll { attendee in
+          attendee.name.allSatisfy(\.isWhitespace)
         }
-        state.addSyncUp = nil
-        state.$syncUps.withLock { _ = $0.append(newSyncUp) }
+        if syncUp.attendees.isEmpty {
+          syncUp.attendees.append(
+            editState.syncUp.attendees.first
+              ?? Attendee(id: Attendee.ID(uuid()))
+          )
+        }
+        state.$syncUps.withLock { _ = $0.append(syncUp) }
+        state.destination = nil
         return .none
-        
-      case .discardButtonTapped:
-        state.addSyncUp = nil
+
+      case .destination:
         return .none
-        
+
+      case .dismissAddSyncUpButtonTapped:
+        state.destination = nil
+        return .none
+
       case let .onDelete(indexSet):
         state.$syncUps.withLock { $0.remove(atOffsets: indexSet) }
         return .none
-        
-      case .syncUpTapped:
-        return .none
       }
     }
-    .ifLet(\.$addSyncUp, action: \.addSyncUp) {
-      SyncUpForm()
-    }
+    .ifLet(\.$destination, action: \.destination)
   }
 }
-
-extension SharedKey where Self == FileStorageKey<IdentifiedArrayOf<SyncUp>>.Default {
-  static var syncUps: Self {
-    Self[.fileStorage(.documentsDirectory.appending(component: "sync-ups.json")), default: []]
-  }
-}
+extension SyncUpsList.Destination.State: Equatable {}
 
 struct SyncUpsListView: View {
   @Bindable var store: StoreOf<SyncUpsList>
-  
+
   var body: some View {
     List {
       ForEach(Array(store.$syncUps)) { $syncUp in
-        // TODO: Alternative refactor
-        //
-        // An alternative is to use a plain Button instead of NavigationLink, and send an action from
-        // that button. Then the parent App feature can intercept that action and manually append
-        // state to its path. This fully decouples the features from one another, and only the App
-        // feature needs to have knowledge about all of the child features
-        NavigationLink(
-          state: AppFeature.Path.State.detail(SyncUpDetail.State(syncUp: $syncUp))
-        ) {
+        NavigationLink(state: AppFeature.Path.State.detail(SyncUpDetail.State(syncUp: $syncUp))) {
           CardView(syncUp: syncUp)
         }
         .listRowBackground(syncUp.theme.mainColor)
       }
       .onDelete { indexSet in
         store.send(.onDelete(indexSet))
-      }
-    }
-    .sheet(item: $store.scope(state: \.addSyncUp, action: \.addSyncUp)) { addSyncUpStore in
-      NavigationStack {
-        SyncUpFormView(store: addSyncUpStore)
-          .navigationTitle("New sync-up")
-          .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-              Button("Discard") {
-                store.send(.discardButtonTapped)
-              }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-              Button("Add") {
-                store.send(.confirmAddButtonTapped)
-              }
-            }
-          }
       }
     }
     .toolbar {
@@ -120,20 +99,26 @@ struct SyncUpsListView: View {
       }
     }
     .navigationTitle("Daily Sync-ups")
-  }
-}
-
-#Preview {
-  @Shared(.syncUps) var syncUps = [.mock]
-  NavigationStack {
-    SyncUpsListView(
-      store: Store(
-        initialState: SyncUpsList.State()
-      ) {
-        SyncUpsList()
-          ._printChanges()
+    .sheet(
+      item: $store.scope(state: \.destination?.add, action: \.destination.add)
+    ) { addSyncUpStore in
+      NavigationStack {
+        SyncUpFormView(store: addSyncUpStore)
+          .navigationTitle("New sync-up")
+          .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+              Button("Dismiss") {
+                store.send(.dismissAddSyncUpButtonTapped)
+              }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Add") {
+                store.send(.confirmAddSyncUpButtonTapped)
+              }
+            }
+          }
       }
-    )
+    }
   }
 }
 
@@ -154,7 +139,7 @@ struct CardView: View {
       .font(.caption)
     }
     .padding()
-    .foregroundStyle(syncUp.theme.accentColor)
+    .foregroundColor(syncUp.theme.accentColor)
   }
 }
 
@@ -169,4 +154,35 @@ struct TrailingIconLabelStyle: LabelStyle {
 
 extension LabelStyle where Self == TrailingIconLabelStyle {
   static var trailingIcon: Self { Self() }
+}
+
+#Preview("List") {
+  @Shared(.syncUps) var syncUps = [
+    .mock,
+    .productMock,
+    .engineeringMock,
+  ]
+  NavigationStack {
+    SyncUpsListView(
+      store: Store(initialState: SyncUpsList.State()) {
+        SyncUpsList()
+      }
+    )
+  }
+}
+
+#Preview("Card") {
+  CardView(
+    syncUp: SyncUp(
+      id: SyncUp.ID(),
+      duration: .seconds(60),
+      title: "Point-Free Morning Sync"
+    )
+  )
+}
+
+extension SharedKey where Self == FileStorageKey<IdentifiedArrayOf<SyncUp>>.Default {
+  static var syncUps: Self {
+    Self[.fileStorage(.documentsDirectory.appending(component: "sync-ups.json")), default: []]
+  }
 }

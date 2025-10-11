@@ -1,16 +1,9 @@
-//
-//  Models.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 8/27/25.
-//
-
-import Foundation
 import IdentifiedCollections
 import SwiftUI
+import Tagged
 
 struct SyncUp: Equatable, Identifiable, Codable {
-  let id: UUID
+  let id: Tagged<Self, UUID>
   var attendees: IdentifiedArrayOf<Attendee> = []
   var duration: Duration = .seconds(60 * 5)
   var meetings: IdentifiedArrayOf<Meeting> = []
@@ -23,19 +16,17 @@ struct SyncUp: Equatable, Identifiable, Codable {
 }
 
 struct Attendee: Equatable, Identifiable, Codable {
-  let id: UUID
+  let id: Tagged<Self, UUID>
   var name = ""
 }
 
 struct Meeting: Equatable, Identifiable, Codable {
-  let id: UUID
+  let id: Tagged<Self, UUID>
   let date: Date
   var transcript: String
 }
 
 enum Theme: String, CaseIterable, Equatable, Identifiable, Codable {
-  var id: Self { self }
-
   case bubblegum
   case buttercup
   case indigo
@@ -53,12 +44,15 @@ enum Theme: String, CaseIterable, Equatable, Identifiable, Codable {
   case teal
   case yellow
 
+  var id: Self { self }
+
   var accentColor: Color {
     switch self {
-    case .bubblegum, .buttercup, .lavender, .orange, .periwinkle, .poppy, .seafoam, .sky, .tan, .teal, .yellow:
-      .black
+    case .bubblegum, .buttercup, .lavender, .orange, .periwinkle, .poppy, .seafoam, .sky, .tan,
+      .teal, .yellow:
+      return .black
     case .indigo, .magenta, .navy, .oxblood, .purple:
-      .white
+      return .white
     }
   }
 
@@ -78,6 +72,7 @@ extension SyncUp {
       Attendee(id: Attendee.ID(), name: "Blob III"),
       Attendee(id: Attendee.ID(), name: "Blob I"),
     ],
+    duration: .seconds(60),
     meetings: [
       Meeting(
         id: Meeting.ID(),
@@ -94,5 +89,27 @@ extension SyncUp {
     ],
     theme: .orange,
     title: "Design"
+  )
+
+  static let engineeringMock = Self(
+    id: SyncUp.ID(),
+    attendees: [
+      Attendee(id: Attendee.ID(), name: "Blob"),
+      Attendee(id: Attendee.ID(), name: "Blob Jr"),
+    ],
+    duration: .seconds(60 * 10),
+    theme: .periwinkle,
+    title: "Engineering"
+  )
+
+  static let productMock = Self(
+    id: SyncUp.ID(),
+    attendees: [
+      Attendee(id: Attendee.ID(), name: "Blob Sr"),
+      Attendee(id: Attendee.ID(), name: "Blob Jr"),
+    ],
+    duration: .seconds(60 * 30),
+    theme: .poppy,
+    title: "Product"
   )
 }
