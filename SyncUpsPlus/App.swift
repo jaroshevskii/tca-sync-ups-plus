@@ -1,22 +1,19 @@
-//
-//  SyncUpsPlusApp.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 9/17/25.
-//
-
 import ComposableArchitecture
 import SwiftUI
 
 @main
-struct SyncUpsPlusApp: App {
+struct SyncUpsApp: App {
   // NB: This is static to avoid interference with Xcode previews, which create this entry
   //     point each time they are run.
-  @MainActor
   static let store = Store(initialState: AppFeature.State()) {
     AppFeature()
+      ._printChanges()
+  } withDependencies: {
+    if ProcessInfo.processInfo.environment["UITesting"] == "true" {
+      $0.defaultFileStorage = .inMemory
+    }
   }
-  
+
   var body: some Scene {
     WindowGroup {
       if isTesting {
