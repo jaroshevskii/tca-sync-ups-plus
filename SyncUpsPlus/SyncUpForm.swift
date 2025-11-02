@@ -107,15 +107,21 @@ struct ThemePicker: View {
   var body: some View {
     Picker("Theme", selection: $selection) {
       ForEach(Theme.allCases) { theme in
-        ZStack {
-          RoundedRectangle(cornerRadius: 4)
-            .fill(theme.mainColor)
-          Label(theme.name, systemImage: "paintpalette")
-            .padding(4)
+        if #available(iOS 26, *) {
+          Label(theme.name, systemImage: "paintpalette.fill")
+            .foregroundStyle(theme.mainColor, theme.accentColor)
+            .tag(theme)
+        } else {
+          ZStack {
+            RoundedRectangle(cornerRadius: 4)
+              .fill(theme.mainColor)
+            Label(theme.name, systemImage: "paintpalette")
+              .padding(4)
+          }
+          .foregroundColor(theme.accentColor)
+          .fixedSize(horizontal: false, vertical: true)
+          .tag(theme)
         }
-        .foregroundColor(theme.accentColor)
-        .fixedSize(horizontal: false, vertical: true)
-        .tag(theme)
       }
     }
   }
