@@ -32,6 +32,7 @@
 		BB967EAF2E79CF88003D5483 /* SyncUpsPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SyncUpsPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB967EB02E79CF88003D5483 /* SyncUpsPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpsPlusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB967EB12E79CF88003D5483 /* SyncUpsPlusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpsPlusUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBDB6C102EB7DCE300140D33 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -81,6 +82,7 @@
 		BB7FBB162E5E5F86000B3B4C = {
 			isa = PBXGroup;
 			children = (
+				BBDB6C102EB7DCE300140D33 /* .gitignore */,
 				BB8A70432E5F277D00452C62 /* .editorconfig */,
 				BB7FBB212E5E5F86000B3B4C /* SyncUpsPlus */,
 				BB7FBB2F2E5E5F88000B3B4C /* SyncUpsPlusTests */,
