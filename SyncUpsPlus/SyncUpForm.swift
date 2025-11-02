@@ -1,19 +1,23 @@
-//
-//  SyncUpForm.swift
-//  SyncUpsPlus
-//
-//  Created by Sasha Jaroshevskii on 9/5/25.
-//
-
 import ComposableArchitecture
 import SwiftUI
+import SwiftUINavigation
+import Tagged
 
 @Reducer
 struct SyncUpForm {
   @ObservableState
-  struct State: Equatable {
+  struct State: Equatable, Sendable {
     var focus: Field? = .title
     var syncUp: SyncUp
+
+    init(focus: Field? = .title, syncUp: SyncUp) {
+      self.focus = focus
+      self.syncUp = syncUp
+      if self.syncUp.attendees.isEmpty {
+        @Dependency(\.uuid) var uuid
+        self.syncUp.attendees.append(Attendee(id: Attendee.ID(uuid())))
+      }
+    }
 
     enum Field: Hashable {
       case attendee(Attendee.ID)
@@ -21,21 +25,20 @@ struct SyncUpForm {
     }
   }
 
-  enum Action: BindableAction {
+  enum Action: BindableAction, Equatable, Sendable {
     case addAttendeeButtonTapped
     case binding(BindingAction<State>)
-    case onDeleteAttendees(IndexSet)
+    case deleteAttendees(atOffsets: IndexSet)
   }
 
   @Dependency(\.uuid) var uuid
 
   var body: some ReducerOf<Self> {
     BindingReducer()
-
     Reduce { state, action in
       switch action {
       case .addAttendeeButtonTapped:
-        let attendee = Attendee(id: uuid())
+        let attendee = Attendee(id: Attendee.ID(uuid()))
         state.syncUp.attendees.append(attendee)
         state.focus = .attendee(attendee.id)
         return .none
@@ -43,17 +46,13 @@ struct SyncUpForm {
       case .binding:
         return .none
 
-      case let .onDeleteAttendees(indices):
+      case let .deleteAttendees(atOffsets: indices):
         state.syncUp.attendees.remove(atOffsets: indices)
-        guard
-          !state.syncUp.attendees.isEmpty,
-          let firstIndex = indices.first
-        else {
-          state.syncUp.attendees.append(
-            Attendee(id: uuid())
-          )
-          return .none
+        if state.syncUp.attendees.isEmpty {
+          state.syncUp.attendees.append(Attendee(id: Attendee.ID(uuid())))
         }
+        guard let firstIndex = indices.first
+        else { return .none }
         let index = min(firstIndex, state.syncUp.attendees.count - 1)
         state.focus = .attendee(state.syncUp.attendees[index].id)
         return .none
@@ -65,7 +64,7 @@ struct SyncUpForm {
 struct SyncUpFormView: View {
   @Bindable var store: StoreOf<SyncUpForm>
   @FocusState var focus: SyncUpForm.State.Field?
-  
+
   var body: some View {
     Form {
       Section {
@@ -88,7 +87,7 @@ struct SyncUpFormView: View {
             .focused($focus, equals: .attendee(attendee.id))
         }
         .onDelete { indices in
-          store.send(.onDeleteAttendees(indices))
+          store.send(.deleteAttendees(atOffsets: indices))
         }
 
         Button("New attendee") {
@@ -100,18 +99,6 @@ struct SyncUpFormView: View {
     }
     .bind($store.focus, to: $focus)
   }
-}
-
-#Preview {
-  SyncUpFormView(
-    store: Store(
-      initialState: SyncUpForm.State(
-        syncUp: .mock
-      )
-    ) {
-      SyncUpForm()
-    }
-  )
 }
 
 struct ThemePicker: View {
@@ -126,7 +113,7 @@ struct ThemePicker: View {
           Label(theme.name, systemImage: "paintpalette")
             .padding(4)
         }
-        .foregroundStyle(theme.accentColor)
+        .foregroundColor(theme.accentColor)
         .fixedSize(horizontal: false, vertical: true)
         .tag(theme)
       }
@@ -138,5 +125,15 @@ extension Duration {
   fileprivate var minutes: Double {
     get { Double(components.seconds / 60) }
     set { self = .seconds(newValue * 60) }
+  }
+}
+
+#Preview {
+  NavigationStack {
+    SyncUpFormView(
+      store: Store(initialState: SyncUpForm.State(syncUp: .mock)) {
+        SyncUpForm()
+      }
+    )
   }
 }
