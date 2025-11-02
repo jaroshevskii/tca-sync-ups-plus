@@ -43,8 +43,7 @@ struct SyncUpsList {
         return .none
 
       case .confirmAddSyncUpButtonTapped:
-        guard case let .some(.add(editState)) = state.destination
-        else { return .none }
+        guard case let .some(.add(editState)) = state.destination else { return .none }
         var syncUp = editState.syncUp
         syncUp.attendees.removeAll { attendee in
           attendee.name.allSatisfy(\.isWhitespace)
@@ -55,7 +54,7 @@ struct SyncUpsList {
               ?? Attendee(id: Attendee.ID(uuid()))
           )
         }
-        state.$syncUps.withLock { _ = $0.append(syncUp) }
+        state.$syncUps.withLock { _ = $0.insert(syncUp, at: 0) }
         state.destination = nil
         return .none
 
